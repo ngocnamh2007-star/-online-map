@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bản đồ trực tuyến</title>
+    <link rel="preconnect" href="https://unpkg.com" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link rel="preconnect" href="https://www.google.com" />
+    <link rel="preconnect" href="https://maps.google.com" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script defer src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script defer src="./app.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="side-panel" aria-label="Bảng điều khiển bản đồ">
+        <header class="panel-header">
+          <div>
+            <p class="eyebrow">Live map</p>
+            <h1>Bản đồ trực tuyến</h1>
+          </div>
+          <button class="icon-button" id="shareButton" type="button" title="Sao chép liên kết bản đồ" aria-label="Sao chép liên kết bản đồ">
+            <i data-lucide="share-2" aria-hidden="true"></i>
+          </button>
+        </header>
+
+        <form class="search-bar" id="searchForm">
+          <label class="sr-only" for="searchInput">Tìm địa điểm</label>
+          <i data-lucide="search" aria-hidden="true"></i>
+          <input id="searchInput" name="q" type="search" autocomplete="off" placeholder="Tìm địa điểm, quận, thành phố..." />
+          <button class="icon-button filled" type="submit" title="Tìm kiếm" aria-label="Tìm kiếm">
+            <i data-lucide="arrow-right" aria-hidden="true"></i>
+          </button>
+        </form>
+
+        <p class="status-line" id="searchStatus" aria-live="polite">Sẵn sàng</p>
+        <ul class="result-list" id="resultList" aria-label="Kết quả tìm kiếm"></ul>
+
+        <section class="panel-section" aria-labelledby="routeHeading">
+          <div class="section-heading">
+            <h2 id="routeHeading">Chỉ đường</h2>
+            <button class="icon-button" id="swapRouteButton" type="button" title="Đảo chiều điểm đi và điểm đến" aria-label="Đảo chiều điểm đi và điểm đến">
+              <i data-lucide="arrow-up-down" aria-hidden="true"></i>
+            </button>
+          </div>
+
+          <div class="route-stack">
+            <label class="route-field">
+              <span class="route-label">Điểm đi</span>
+              <input id="originInput" type="text" autocomplete="off" placeholder="Nhập điểm xuất phát..." />
+            </label>
+            <div class="route-inline-actions">
+              <button class="mini-button" id="useMyLocationButton" type="button">Vị trí tôi</button>
+            </div>
+
+            <label class="route-field">
+              <span class="route-label">Điểm đến</span>
+              <input id="destinationInput" type="text" autocomplete="off" placeholder="Nhập điểm đến..." />
+            </label>
+            <div class="route-inline-actions">
+              <button class="mini-button" id="useViewedPlaceButton" type="button">Đang xem</button>
+            </div>
+          </div>
+
+          <div class="travel-modes" role="group" aria-label="Chọn phương tiện">
+            <button class="travel-mode active" type="button" data-travel-mode="driving" aria-pressed="true">
+              <i data-lucide="car" aria-hidden="true"></i>
+              <span>Xe</span>
+            </button>
+            <button class="travel-mode" type="button" data-travel-mode="walking" aria-pressed="false">
+              <i data-lucide="footprints" aria-hidden="true"></i>
+              <span>Đi bộ</span>
+            </button>
+            <button class="travel-mode" type="button" data-travel-mode="bicycling" aria-pressed="false">
+              <i data-lucide="bike" aria-hidden="true"></i>
+              <span>Xe đạp</span>
+            </button>
+            <button class="travel-mode" type="button" data-travel-mode="transit" aria-pressed="false">
+              <i data-lucide="tram-front" aria-hidden="true"></i>
+              <span>Công cộng</span>
+            </button>
+          </div>
+
+          <div class="route-actions">
+            <button class="action-button primary" id="previewRouteButton" type="button">Xem tuyến</button>
+            <button class="action-button" id="clearRouteButton" type="button">Xóa tuyến</button>
+          </div>
+
+          <a class="route-link hidden" id="openDirectionsLink" href="#" target="_blank" rel="noreferrer noopener">Mở chỉ đường toàn màn hình</a>
+        </section>
+
+        <section class="panel-section is-hidden" id="routeGuideSection" aria-labelledby="routeGuideHeading">
+          <div class="section-heading">
+            <h2 id="routeGuideHeading">Từng chặng</h2>
+            <p class="guide-count" id="routeGuideCount">0 bước</p>
+          </div>
+          <div class="route-current" id="routeCurrentCard" aria-live="polite">
+            <p class="empty-state">Chưa có hướng dẫn nào.</p>
+          </div>
+          <ol class="route-steps" id="routeStepsList" aria-label="Danh sách chỉ dẫn từng chặng"></ol>
+        </section>
+
+        <section class="panel-section" aria-labelledby="layersHeading">
+          <div class="section-heading">
+            <h2 id="layersHeading">Lớp bản đồ</h2>
+            <button class="icon-button" id="locateButton" type="button" title="Định vị hiện tại" aria-label="Định vị hiện tại">
+              <i data-lucide="locate-fixed" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div class="segmented" role="group" aria-label="Chọn lớp bản đồ">
+            <button class="segment active" type="button" data-layer="streets" aria-pressed="true">Phố</button>
+            <button class="segment" type="button" data-layer="terrain" aria-pressed="false">Địa hình</button>
+            <button class="segment" type="button" data-layer="satellite" aria-pressed="false">Vệ tinh</button>
+          </div>
+        </section>
+
+        <section class="panel-section saved-section" aria-labelledby="savedHeading">
+          <div class="section-heading">
+            <h2 id="savedHeading">Ghim đã lưu</h2>
+            <button class="icon-button" id="clearSavedButton" type="button" title="Xóa tất cả ghim" aria-label="Xóa tất cả ghim">
+              <i data-lucide="trash-2" aria-hidden="true"></i>
+            </button>
+          </div>
+          <ul class="saved-list" id="savedList" aria-label="Danh sách ghim đã lưu"></ul>
+        </section>
+      </aside>
+
+      <main class="map-area" aria-label="Bản đồ">
+        <div id="map"></div>
+        <div class="map-actions" aria-label="Công cụ bản đồ">
+          <button class="icon-button floating" id="zoomVietnamButton" type="button" title="Xem toàn Việt Nam" aria-label="Xem toàn Việt Nam">
+            <i data-lucide="map" aria-hidden="true"></i>
+          </button>
+          <button class="icon-button floating" id="clearMarkersButton" type="button" title="Ẩn ghim tạm" aria-label="Ẩn ghim tạm">
+            <i data-lucide="eraser" aria-hidden="true"></i>
+          </button>
+        </div>
+        <output class="coordinate-readout" id="coordinateReadout">16.0000, 106.0000</output>
+      </main>
+    </div>
+  </body>
+</html>
